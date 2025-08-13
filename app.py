@@ -2,65 +2,48 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# ---------------------
-# CONFIGURAÇÃO INICIAL
-# ---------------------
+# URL do CSV no GitHub (link raw)
+CSV_URL = "https://raw.githubusercontent.com/RaphaelSouzaC/dash-teste/main/planilha_estoque.csv"
+
+# Carregar dados
+df = pd.read_csv(CSV_URL)
+
+# Título
 st.set_page_config(page_title="Dashboard de Estoque", layout="wide")
+st.title("📊 Dashboard de Estoque")
 
-# URL do CSV no GitHub (troque pela sua)
-url_csv = "https://raw.githubusercontent.com/seu_usuario/seu_repositorio/main/planilha_estoque.csv"
+# Filtros
+col1, col2 = st.columns(2)
+with col1:
+    filtro_local = st.selectbox("Filtrar por Local", ["Todos"] + sorted(df['Local'].dropna().unique().tolist()))
+with col2:
+    filtro_status = st.selectbox("Filtrar por Status", ["Todos"] + sorted(df['Status'].dropna().unique().tolist()))
 
-# Ler dados
-df = pd.read_csv(url_csv)
-
-# ---------------------
-# LIMPEZA DE DADOS
-# ---------------------
-df.columns = [col.strip() for col in df.columns]  # remove espaços extras
-if "Status" not in df.columns:
-    st.error("A coluna 'Status' não foi encontrada no CSV.")
-    st.stop()
-
-# ---------------------
-# KPIs
-# ---------------------
-total_itens = len(df)
-total_estoque = df[df["Status"].str.contains("Estoque", case=False, na=False)].shape[0]
-total_uso = df[df["Status"].str.contains("Em uso", case=False, na=False)].shape[0]
-
-col1, col2, col3 = st.columns(3)
-col1.metric("Total de Itens", total_itens)
-col2.metric("Em Estoque", total_estoque)
-col3.metric("Em Uso", total_uso)
-
-# ---------------------
-# FILTROS
-# ---------------------
-col_filtro1, col_filtro2 = st.columns(2)
-status_selecionado = col_filtro1.multiselect("Filtrar por Status:", df["Status"].dropna().unique())
-categoria_selecionada = col_filtro2.multiselect("Filtrar por Categoria:", df["Categoria"].dropna().unique() if "Categoria" in df.columns else [])
-
+# Aplicar filtros
 df_filtrado = df.copy()
-if status_selecionado:
-    df_filtrado = df_filtrado[df_filtrado["Status"].isin(status_selecionado)]
-if categoria_selecionada and "Categoria" in df.columns:
-    df_filtrado = df_filtrado[df_filtrado["Categoria"].isin(categoria_selecionada)]
+if filtro_local != "Todos":
+    df_filtrado = df_filtrado[df_filtrado['Local'] == filtro_local]
+if filtro_status != "Todos":
+    df_filtrado = df_filtrado[df_filtrado['Status'] == filtro_status]
 
-# ---------------------
-# GRÁFICOS
-# ---------------------
-st.subheader("Distribuição por Status")
-fig_status = px.histogram(df_filtrado, x="Status", color="Status", title="Quantidade por Status")
-st.plotly_chart(fig_status, use_container_width=True)
+# KPIs
+total_itens = len(df_filtrado)
+em_estoque = (df_filtrado['Status'] == "Estoque").sum()
+em_uso = (df_filtrado['Status'] != "Estoque").sum()
 
-if "Categoria" in df.columns:
-    st.subheader("Distribuição por Categoria")
-    fig_cat = px.histogram(df_filtrado, x="Categoria", color="Categoria", title="Quantidade por Categoria")
-    st.plotly_chart(fig_cat, use_container_width=True)
+st.markdown(f"**Total de Itens:** {total_itens}")
+st.markdown(f"**Em Estoque:** {em_estoque}")
+st.markdown(f"**Em Uso:** {em_uso}")
 
-# ---------------------
-# TABELA
-# ---------------------
-st.subheader("Tabela de Estoque")
+# Gráfico por Local
+fig1 = px.bar(df_filtrado.groupby('Local').size().reset_index(name='Quantidade'),
+              x='Local', y='Quantidade', title="Quantidade por Local")
+st.plotly_chart(fig1, use_container_width=True)
+
+# Gráfico por Status
+fig2 = px.pie(df_filtrado, names='Status', title="Distribuição por Status")
+st.plotly_chart(fig2, use_container_width=True)
+
+# Mostrar tabela
+st.subheader("📋 Dados Detalhados")
 st.dataframe(df_filtrado)
-
