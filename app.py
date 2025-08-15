@@ -1,33 +1,32 @@
 import streamlit as st
 import pandas as pd
 
-st.set_page_config(page_title="Dashboard de Estoque", layout="wide")
+# Carregar dados
+df = pd.read_excel("estoque.xlsx")
 
-# ===== Carregar dados =====
-# Substitua pelo caminho do seu arquivo no GitHub ou local
-url_arquivo = "planilha_estoque.csv"  # Ou caminho/URL correto
-df = pd.read_csv(url_arquivo)
-
-# Limpar nomes de colunas
+# Normalizar nomes de colunas (remove espaços extras e coloca maiúsculas padronizadas)
 df.columns = df.columns.str.strip()
 
-# Mostrar colunas carregadas (debug)
-st.write("Colunas encontradas:", df.columns.tolist())
+# Garantir que a coluna 'Local' exista
+if 'Local' not in df.columns:
+    if 'CENTRO DE CUSTO' in df.columns:
+        df['Local'] = df['CENTRO DE CUSTO']  # Usa Centro de Custo como Local
+    else:
+        df['Local'] = "Não informado"  # Se nem Centro de Custo existir, cria com valor padrão
 
-# ===== Detectar coluna 'Local' =====
+# Filtro por Local
+filtro_local = st.selectbox(
+    "Filtrar por Local",
+    ["Todos"] + sorted(df['Local'].dropna().unique().tolist())
+)
 
-# ===== Filtro por Local =====
-opcoes_locais = ["Todos"] + sorted(df[coluna_local].dropna().unique().tolist())
-filtro_local = st.selectbox("Filtrar por Local", opcoes_locais)
-
+# Aplicar filtro
 if filtro_local != "Todos":
-    df = df[df[coluna_local] == filtro_local]
+    df = df[df['Local'] == filtro_local]
 
-# ===== Mostrar tabela filtrada =====
+# Mostrar tabela
 st.dataframe(df)
 
-# ===== Estatísticas =====
-st.metric("Total de Itens", len(df))
-if "Quantidade" in df.columns:
-    st.metric("Quantidade Total em Estoque", df["Quantidade"].sum())
-
+# Mostrar métricas rápidas
+st.metric("Total de Registros", len(df))
+st.metric("Colunas no Dataset", len(df.columns))
