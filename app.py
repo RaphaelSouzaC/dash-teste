@@ -15,15 +15,6 @@ df.columns = df.columns.str.strip()
 st.write("Colunas encontradas:", df.columns.tolist())
 
 # ===== Detectar coluna 'Local' =====
-coluna_local = None
-for nome in df.columns:
-    if "local" in nome.lower():
-        coluna_local = nome
-        break
-
-if coluna_local is None:
-    st.error("❌ Não foi encontrada nenhuma coluna relacionada a 'Local'. Verifique sua planilha.")
-    st.stop()
 
 # ===== Filtro por Local =====
 opcoes_locais = ["Todos"] + sorted(df[coluna_local].dropna().unique().tolist())
@@ -39,3 +30,4 @@ st.dataframe(df)
 st.metric("Total de Itens", len(df))
 if "Quantidade" in df.columns:
     st.metric("Quantidade Total em Estoque", df["Quantidade"].sum())
+
